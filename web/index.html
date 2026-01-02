@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Custodian</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+<style>
+body {
+  margin: 0;
+  font-family: Montserrat, sans-serif;
+  background: white;
+  color: black;
+}
+header {
+  padding: 24px;
+  font-size: 28px;
+  font-weight: 600;
+}
+nav {
+  display: flex;
+  gap: 16px;
+  padding: 0 24px 24px;
+}
+button {
+  background: white;
+  border: 2px solid black;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-family: inherit;
+  position: relative;
+  overflow: hidden;
+}
+button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: black;
+  transform: translateY(100%);
+  transition: transform 0.25s ease;
+  z-index: -1;
+}
+button:hover::before {
+  transform: translateY(0);
+}
+button:hover {
+  color: white;
+  background: black;
+}
+section {
+  padding: 24px;
+}
+.card {
+  border: 2px solid black;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+input {
+  border: 2px solid black;
+  padding: 8px;
+  font-family: inherit;
+}
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.hidden {
+  display: none;
+}
+</style>
+</head>
+<body>
+
+<header>Custodian</header>
+
+<nav>
+  <button onclick="show('students')">Students</button>
+  <button onclick="show('scans')">Scans</button>
+</nav>
+
+<section id="students"></section>
+<section id="scans" class="hidden"></section>
+
+<script>
+const API = "http://192.168.86.224:3000";
+
+function show(id) {
+  document.getElementById("students").classList.add("hidden");
+  document.getElementById("scans").classList.add("hidden");
+  document.getElementById(id).classList.remove("hidden");
+}
+
+async function loadStudents() {
+  const res = await fetch(API + "/students");
+  const students = await res.json();
+  const el = document.getElementById("students");
+  el.innerHTML = "";
+  students.forEach(s => {
+    el.innerHTML += `
+      <div class="card">
+        <div><strong>${s.name}</strong></div>
+        <div>Advisor: ${s.advisor}</div>
+        <div>Student ID: ${s.studentId}</div>
+        <div>UIDs: ${s.uids.join(", ")}</div>
+      </div>
+    `;
+  });
+}
+
+async function loadScans(filter = "") {
+  const res = await fetch(API + "/scans" + filter);
+  const scans = await res.json();
+  const el = document.getElementById("scans");
+  el.innerHTML = `
+    <div class="row">
+      <input id="uidFilter" placeholder="UID">
+      <input id="studentFilter" placeholder="Student ID">
+      <button onclick="applyFilter()">Filter</button>
+    </div>
+  `;
+  scans.forEach(s => {
+    el.innerHTML += `
+      <div class="card">
+        <div>UID: ${s.uid}</div>
+        <div>Device: ${s.device}</div>
+        <div>Time: ${new Date(s.time).toLocaleString()}</div>
+        <div>Student: ${s.student ? s.student.name : "Unknown"}</div>
+      </div>
+    `;
+  });
+}
+
+function applyFilter() {
+  const uid = document.getElementById("uidFilter").value;
+  const studentId = document.getElementById("studentFilter").value;
+  let q = [];
+  if (uid) q.push("uid=" + uid);
+  if (studentId) q.push("studentId=" + studentId);
+  loadScans(q.length ? "?" + q.join("&") : "");
+}
+
+loadStudents();
+loadScans();
+</script>
+
+</body>
+</html>
